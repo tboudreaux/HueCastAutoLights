@@ -6,6 +6,25 @@ from pathlib import Path
 import os
 import shutil
 
+def check_for_previous_install():
+    home = str(Path.home())
+    default_install_dir = "{}/.HueControl".format(home)
+    if os.path.exists(default_install_dir):
+        if len(next(os.walk(default_install_dir))[1]) != 0:
+            return 1, default_install_dir
+        else:
+            return 2, default_install_dir
+    else:
+        install_dir = os.environ.get('HUE_CAST_DIR')
+        if install_dir:
+            if len(next(os.walk(install_dir))[1]) != 0:
+                return 1, install_dir
+            else:
+                return 2, install_dir
+        else:
+            return 0, None
+
+
 def validate_install_path(install_dir):
     if install_dir:
         if os.path.exists(install_dir):
@@ -16,17 +35,32 @@ def validate_install_path(install_dir):
         return False
 
 def get_install_location():
-    base = str(Path.home())
-    base = base[:-1] if base[-1] == '/' else base
+    install_code, pre_installed = check_for_previous_install()
+    install = True
+    if install_code == 2:
+        print('Installation with no defined rules found at [{}], running autoConfig again'.format(pre_installed))
+    if install_code == 1:
+        answer = 'h'
+        while answer.upper() != 'Y' and answer.upper() != 'N' and answer.upper() != '':
+            answer = input('Base installation already found at [{}], would you like to configure a new rule [Y/n]: '.format(pre_installed))
+        install = False
+        if answer.upper() == 'N':
+            print('Closing autoConfig')
+            exit()
+        else:
+            install_dir = pre_installed
+    if install:
+        base = str(Path.home())
+        base = base[:-1] if base[-1] == '/' else base
 
-    base = "{}/.HueControl".format(base)
-    install_dir = None
-    while not validate_install_path(install_dir):
-        install_dir = input('Enter Install Path or Hit Enter [{}]: '.format(base))
-        if install_dir == '':
-            install_dir = base
-            if not os.path.exists(install_dir):
-                os.mkdir(install_dir)
+        base = "{}/.HueControl".format(base)
+        install_dir = None
+        while not validate_install_path(install_dir):
+            install_dir = input('Enter Install Path or Hit Enter [{}]: '.format(base))
+            if install_dir == '':
+                install_dir = base
+                if not os.path.exists(install_dir):
+                    os.mkdir(install_dir)
     return install_dir
 
 def get_rule_name(install_dir):
@@ -73,11 +107,25 @@ def get_desired_chromecast(casts):
         return None
 
 def write_cast_info_file(casts, cast_number, install_loc):
-    with open('{}/chromecast_ip'.formar(install_loc), 'w') as f:
+    with open('{}/chromecast_ip'.format(install_loc), 'w') as f:
         f.write(list(casts.values())[cast_number-1])
 
-def register_new_user_bridge():
-    myHue = pyphue.PyPHue(wizard = True)
+def register_new_user_bridge(install_dir):
+    files = os.listdir(install_dir)
+    if 'hue_ip_user' not in files:
+        myHue = pyphue.PyPHue(wizard = True)
+    else:
+        answer = 'h'
+        while answer.upper() != 'N' and answer.upper() != 'Y' and answer.upper() != '':
+            answer = input('A user is already registered on the bridge, would you like to register a new one [y/N]: ')
+        if answer == 'Y':
+            myHue = pyphue.PyPHue(wizard = True)
+        else:
+            with open('{}/hue_ip_user'.format(install_dir), 'r') as f:
+                bridge_info = f.readlines()
+            ip = bridge_info[0].rstrip().lstrip()
+            user = bridge_info[1].rstrip().lstrip()
+            return ip, user
 
     return myHue.ip, myHue.user
 
@@ -88,6 +136,7 @@ def write_user_bridge_file(ip, user, install_loc):
         f.write(user)
 
 def get_lights(ip, user):
+    print(ip, user)
     bridge = phue.Bridge(ip, username=user)
     bridge.connect()
 
@@ -140,6 +189,12 @@ if __name__ == '__main__':
     rule_loc = get_rule_name(install_dir)
     rule_loc = rule_loc[:-1] if rule_loc[-1] == '/' else rule_loc
 
+    # Hue User Setup
+    ip, user = register_new_user_bridge(install_dir)
+    print('ip = {}, user = {}'.format(ip, user))
+    if ip and user:
+        write_user_bridge_file(ip, user, install_dir)
+
     # Chromecast Setup
     casts = get_chromecasts()
     display_cast_names(casts)
@@ -150,9 +205,6 @@ if __name__ == '__main__':
 
     write_cast_info_file(casts, cast_number, rule_loc)
 
-    # Hue User Setup
-    ip, user = register_new_user_bridge()
-    write_user_bridge_file(ip, user, rule_loc)
 
     # Hue Lights Setup
     lights = get_lights(ip, user)
@@ -162,5 +214,9 @@ if __name__ == '__main__':
     while not light_list:
         light_list = get_desired_lights(lights)
     write_light_ids(lights, light_list, rule_loc)
+
+    print('Autoconfguration Complete')
+    print('If you modified the install path from the default please set the following enviromental variable')
+    print('HUE_CAST_DIR="{}"'.format(install_dir))
 
 
