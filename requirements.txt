@@ -7,11 +7,8 @@ decorator==4.3.0
 idna==2.7
 ifaddr==0.1.4
 ipaddress==1.0.22
-ipython==6.5.0
-ipython-genutils==0.2.0
 jedi==0.12.1
 netdisco==2.1.0
-numpy==1.15.2
 parso==0.3.1
 pexpect==4.6.0
 phue==1.0
@@ -20,7 +17,6 @@ prompt-toolkit==1.0.15
 protobuf==3.6.1
 ptyprocess==0.6.0
 PyChromecast==2.3.0
-Pygments==2.2.0
 pyphue==1.0.2
 PyYAML==3.13
 qhue==1.0.9
@@ -32,4 +28,3 @@ traitlets==4.3.2
 urllib3==1.23
 wcwidth==0.1.7
 zeroconf==0.21.3
-zhue==0.9.5
