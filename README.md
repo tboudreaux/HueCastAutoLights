@@ -13,6 +13,11 @@ Note that last point, this is only built for Python 3
   3) Using some Python 3 interpriter run main.py, confirm that you see the rule you added when you ran autoConfigure.py
   4) If you wish to add more rules run autoConfigure again, you will be able to add new rules without reinstalling or registering a new user on the brige
   
+## Planned Stuff
+  1) More complex rule system -- for when you want your lights behavior to be customizable rule to rule
+  2) Better conig file system using xml
+  3) Muffins
+  
 ## Other Code Used
 Thanks to 
   1) https://github.com/studioimaginaire/phue
